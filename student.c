@@ -125,9 +125,6 @@ extern void idle(unsigned int cpu_id)
  *	context_switch() is prototyped in os-sim.h. Look there for more information.
  *  a basic getReadyProcess() is implemented below, look at the comments for info.
  *
- * TO-DO: handle scheduling with a time-slice when necessary
- *
- * THIS FUNCTION IS PARTIALLY COMPLETED - REQUIRES MODIFICATION
  */
 static void schedule(unsigned int cpu_id) {
     pcb_t* proc = getReadyProcess();
@@ -139,7 +136,7 @@ static void schedule(unsigned int cpu_id) {
     if (proc!=NULL) {
         proc->state = PROCESS_RUNNING;
     }
-    context_switch(cpu_id, proc, -1);
+    context_switch(cpu_id, proc, time_slice);
 }
 
 
@@ -149,10 +146,13 @@ static void schedule(unsigned int cpu_id) {
  * This function should place the currently running process back in the
  * ready queue, then call schedule() to select a new runnable process.
  *
- * THIS FUNCTION MUST BE IMPLEMENTED FOR ROUND ROBIN OR PRIORITY SCHEDULING
  */
 extern void preempt(unsigned int cpu_id) {
-
+  pthread_mutex_lock(&current_mutex);
+  current[cpu_id]->state = PROCESS_READY;
+  addReadyProcess(current[cpu_id]);
+  pthread_mutex_unlock(&current_mutex);
+  schedule(cpu_id);
 }
 
 
@@ -210,6 +210,14 @@ extern void terminate(unsigned int cpu_id) {
 extern void wake_up(pcb_t *process) {
     process->state = PROCESS_READY;
     addReadyProcess(process);
+    if (alg==StaticPriority) {
+      unsigned int i;
+      for (i=0; i < cpu_count; i++) {
+        if (current[i]==NULL || process->static_priority > current[i]->static_priority) {
+          force_preempt(i);
+        }
+      }
+    }
 }
 
 
@@ -265,13 +273,46 @@ static pcb_t* getReadyProcess(void) {
 	  return NULL;
   }
 
-  // get first process to return and update head to point to next process
-  pcb_t* first = head;
-  head = first->next;
+  if (alg=StaticPriority) {
+    // get highest priority process to return and update head to point to next process
+    pcb_t* currentProcess = head;
+    pcb_t* highestProcess = head;
+    pcb_t* previousPointer = NULL;
+    pcb_t* highestPreviousPointer = NULL;
 
-  // if there was no next process, list is now empty, set tail to NULL
-  if (head == NULL) tail = NULL;
+    int topPriority = currentProcess->static_priority;
+    // find top priority item closest to head in the queue
+    while (currentProcess!= NULL) {
+      if (topPriority < currentProcess->static_priority) {
+        highestProcess = currentProcess;
+        highestPreviousPointer = previousPointer;
+        topPriority = currentProcess->static_priority;
+      }
+      previousPointer = currentProcess;
+      currentProcess = currentProcess->next;
+    }
 
-  pthread_mutex_unlock(&ready_mutex);
-  return first;
+    if (highestPreviousPointer == NULL) {
+      head = highestProcess->next;
+      // if there was no next process, list is now empty, set tail to NULL
+      if (head == NULL) tail = NULL;
+    } else {
+        highestPreviousPointer->next = highestProcess->next;
+      if (highestPreviousPointer->next==NULL) tail=highestPreviousPointer;
+    }
+
+    pthread_mutex_unlock(&ready_mutex);
+    return highestProcess;
+  }
+  else {
+    // get first process to return and update head to point to next process
+    pcb_t* first = head;
+    head = first->next;
+
+    // if there was no next process, list is now empty, set tail to NULL
+    if (head == NULL) tail = NULL;
+
+    pthread_mutex_unlock(&ready_mutex);
+    return first;
+  }
 }

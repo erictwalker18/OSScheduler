@@ -1,0 +1,5 @@
+1. With 1, it runs in 65-70 ms, with 2 it runs in 40ish ms, and with 3 it runs in 30-35ms. This is not a linear relationship between the number of CPUs and total execution time. This is because even when you have a ton of CPUs, there are only so many processes running, so the CPUs will idle more.
+
+2. The total waiting time decreases a very small amount from high 138.** ms to low 137.** ms. However in a real OS, the time slices are a lot smaller, so the context switching (which increases a lot when the time slices get smaller) becomes a huge factor, making all of the processes wait more.
+
+3. The total waiting times between algorithms didn't change a whole lot, all were in the range of 137-140ms. This being said, the round robin scheduler is closest to SJF as it completes the shortest jobs the earliest, unless the shortest jobs have the highest priority, in which case the priority scheduler would be the closest.
