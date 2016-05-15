@@ -1,6 +1,6 @@
 /*
  * student.c
- * This file contains the CPU scheduler for the simulation.  
+ * This file contains the CPU scheduler for the simulation.
  * original base code from http://www.cc.gatech.edu/~rama/CS2200
  * Last modified 5/11/2016 by Sherri Goings
  */
@@ -14,9 +14,9 @@
 #include "os-sim.h"
 #include "student.h"
 
-// Local helper functions 
-static void addReadyProcess(pcb_t* proc); 
-static pcb_t* getReadyProcess(void); 
+// Local helper functions
+static void addReadyProcess(pcb_t* proc);
+static pcb_t* getReadyProcess(void);
 static void schedule(unsigned int cpu_id);
 
 /*
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
  * idle() is called by the simulator when the idle process is scheduled.
  * It blocks until a process is added to the ready queue, and then calls
  * schedule() to select the next process to run on the CPU.
- * 
+ *
  * THIS FUNCTION IS ALREADY COMPLETED - DO NOT MODIFY
  */
 extern void idle(unsigned int cpu_id)
@@ -117,12 +117,12 @@ extern void idle(unsigned int cpu_id)
  * schedule() is your CPU scheduler. It currently implements basic FIFO scheduling -
  * 1. calls getReadyProcess to select and remove a runnable process from your ready queue
  * 2. updates the current array to show this process (or NULL if there was none) as
- *    running on the given cpu 
+ *    running on the given cpu
  * 3. sets this process state to running (unless its the NULL process)
  * 4. calls context_switch to actually start the chosen process on the given cpu
  *    - note if proc==NULL the idle process will be run
  *    - note the final arg of -1 means there is no clock interrupt
- *	context_switch() is prototyped in os-sim.h. Look there for more information. 
+ *	context_switch() is prototyped in os-sim.h. Look there for more information.
  *  a basic getReadyProcess() is implemented below, look at the comments for info.
  *
  * TO-DO: handle scheduling with a time-slice when necessary
@@ -139,7 +139,7 @@ static void schedule(unsigned int cpu_id) {
     if (proc!=NULL) {
         proc->state = PROCESS_RUNNING;
     }
-    context_switch(cpu_id, proc, -1); 
+    context_switch(cpu_id, proc, -1);
 }
 
 
@@ -151,16 +151,18 @@ static void schedule(unsigned int cpu_id) {
  *
  * THIS FUNCTION MUST BE IMPLEMENTED FOR ROUND ROBIN OR PRIORITY SCHEDULING
  */
-extern void preempt(unsigned int cpu_id) {}
+extern void preempt(unsigned int cpu_id) {
+
+}
 
 
 /*
- * yield() is called by the simulator when a process performs an I/O request 
+ * yield() is called by the simulator when a process performs an I/O request
  * note this is different than the concept of yield in user-level threads!
  * In this context, yield sets the state of the process to waiting (on I/O),
  * then calls schedule() to select a new process to run on this CPU.
  * args: int - id of CPU process wishing to yield is currently running on.
- * 
+ *
  * THIS FUNCTION IS ALREADY COMPLETED - DO NOT MODIFY
  */
 extern void yield(unsigned int cpu_id) {
@@ -200,7 +202,7 @@ extern void terminate(unsigned int cpu_id) {
  * execute the process which just woke up.  However, if any CPU is
  * currently running idle, or all of the CPUs are running processes
  * with a higher priority than the one which just woke up, wake_up()
- * should not preempt any CPUs. To preempt a process, use force_preempt(). 
+ * should not preempt any CPUs. To preempt a process, use force_preempt().
  * Look in os-sim.h for its prototype and parameters.
  *
  * THIS FUNCTION IS PARTIALLY COMPLETED - REQUIRES MODIFICATION
@@ -213,7 +215,7 @@ extern void wake_up(pcb_t *process) {
 
 /* The following 2 functions implement a FIFO ready queue of processes */
 
-/* 
+/*
  * addReadyProcess adds a process to the end of a pseudo linked list (each process
  * struct contains a pointer next that you can use to chain them together)
  * it takes a pointer to a process as an argument and has no return
@@ -242,13 +244,13 @@ static void addReadyProcess(pcb_t* proc) {
 }
 
 
-/* 
+/*
  * getReadyProcess removes a process from the front of a pseudo linked list (each process
  * struct contains a pointer next that you can use to chain them together)
- * it takes no arguments and returns the first process in the ready queue, or NULL 
+ * it takes no arguments and returns the first process in the ready queue, or NULL
  * if the ready queue is empty
  *
- * TO-DO: handle priority scheduling 
+ * TO-DO: handle priority scheduling
  *
  * THIS FUNCTION IS PARTIALLY COMPLETED - REQUIRES MODIFICATION
  */
@@ -273,4 +275,3 @@ static pcb_t* getReadyProcess(void) {
   pthread_mutex_unlock(&ready_mutex);
   return first;
 }
-
