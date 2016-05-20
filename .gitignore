@@ -1,0 +1,4 @@
+*.o
+os-sim
+*.zip
+.DS_Store
