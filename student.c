@@ -29,7 +29,8 @@ static void schedule(unsigned int cpu_id);
 typedef enum {
     FIFO = 0,
 	RoundRobin,
-	StaticPriority
+	StaticPriority,
+  MultiQueue
 } scheduler_alg;
 
 scheduler_alg alg;
@@ -37,6 +38,7 @@ scheduler_alg alg;
 // declare other global vars
 int time_slice = -1;
 int cpu_count;
+int max_wait_time;
 
 
 /*
@@ -62,11 +64,18 @@ int main(int argc, char *argv[])
 		alg = StaticPriority;
 		printf("running with static priority\n");
 	}
+	else if (argc > 2 && strcmp(argv[2],"-m")==0 && argc > 4) {
+		alg = MultiQueue;
+		time_slice = atoi(argv[3]);
+    max_wait_time = atoi(argv[4]);
+		printf("running with multi-level queues, time slice = %d, max_wait_time = %d\n",time_slice,max_wait_time);
+	}
 	else {
-        fprintf(stderr, "Usage: ./os-sim <# CPUs> [ -r <time slice> | -p ]\n"
+        fprintf(stderr, "Usage: ./os-sim <# CPUs> [ -r <time slice> | -p | -m <time slice> <max_wait_time> ]\n"
             "    Default : FIFO Scheduler\n"
             "         -r : Round-Robin Scheduler (must also give time slice)\n"
-            "         -p : Static Priority Scheduler\n\n");
+            "         -p : Static Priority Scheduler\n"
+            "         -m : Multi-Level Queue Scheduler (must also give time slice and max wait time)\n\n");
         return -1;
     }
 	fflush(stdout);
@@ -127,6 +136,66 @@ extern void idle(unsigned int cpu_id)
  *
  */
 static void schedule(unsigned int cpu_id) {
+    // If multi-level queue, check if there are processes that have been
+    // waiting for more than max_wait_time, if so, increment their priority and
+    // put them at the end of the next higher queue.
+    if (alg==MultiQueue) {
+
+      pthread_mutex_lock(&ready_mutex);
+      pcb_t* currentProcess = head;
+      pcb_t* toAppendHead = NULL;
+      pcb_t* toAppendTail = NULL;
+      pcb_t* previousPointer = NULL;
+
+      int current_time = get_simulator_time();
+      // find top priority item closest to head in the queue
+      while (currentProcess!= NULL) {
+        // if a process has been waiting too long, put it in the 'append' queue
+        // and take it out of the current queue, unless it's in the top queue
+        if (current_time > currentProcess->wait_start_time+max_wait_time &&
+                currentProcess->queue_priority < 3) {
+          // remove current process from the current queue
+          if (previousPointer == NULL) {
+            head=currentProcess->next;
+          } else {
+            previousPointer->next=currentProcess->next;
+          }
+          if (currentProcess->next == NULL) {
+            tail = previousPointer;
+          }
+
+          // Add process to the 'to append' queue
+          if (toAppendHead==NULL) {
+            toAppendHead=currentProcess;
+          } else {
+            toAppendTail->next = currentProcess;
+          }
+          toAppendTail=currentProcess;
+
+          // Increment the priority
+          currentProcess->queue_priority++;
+        }
+        else {
+          previousPointer = currentProcess;
+        }
+        currentProcess = currentProcess->next;
+      }
+
+      // Add the 'to append' queue to the current one.
+      if (head==NULL || tail==NULL) {
+        head=toAppendHead;
+        tail=toAppendTail;
+      } else if (toAppendHead!=NULL){
+        tail->next = toAppendHead;
+        tail=toAppendTail;
+      }
+
+      if (toAppendTail != NULL) {
+        toAppendTail->next=NULL;
+      }
+      pthread_mutex_unlock(&ready_mutex);
+    }
+
     pcb_t* proc = getReadyProcess();
 
     pthread_mutex_lock(&current_mutex);
@@ -136,6 +205,7 @@ static void schedule(unsigned int cpu_id) {
     if (proc!=NULL) {
         proc->state = PROCESS_RUNNING;
     }
+    // Use time_slice to schedule as by default it's set to -1 (for FIFO)
     context_switch(cpu_id, proc, time_slice);
 }
 
@@ -146,10 +216,16 @@ static void schedule(unsigned int cpu_id) {
  * This function should place the currently running process back in the
  * ready queue, then call schedule() to select a new runnable process.
  *
+ * In the multi-level queue case, the priority decreases if it is above 0
  */
 extern void preempt(unsigned int cpu_id) {
   pthread_mutex_lock(&current_mutex);
   current[cpu_id]->state = PROCESS_READY;
+  // If in the multi-level queue case, decrease priority and reset waiting timer
+  if (alg==MultiQueue && current[cpu_id]->queue_priority > 0) {
+      current[cpu_id]->queue_priority--;
+      current[cpu_id]->wait_start_time=get_simulator_time();
+  }
   addReadyProcess(current[cpu_id]);
   pthread_mutex_unlock(&current_mutex);
   schedule(cpu_id);
@@ -163,12 +239,17 @@ extern void preempt(unsigned int cpu_id) {
  * then calls schedule() to select a new process to run on this CPU.
  * args: int - id of CPU process wishing to yield is currently running on.
  *
- * THIS FUNCTION IS ALREADY COMPLETED - DO NOT MODIFY
+ * In the multi-level queue case, the priority increases if it is not above 3
  */
 extern void yield(unsigned int cpu_id) {
     // use lock to ensure thread-safe access to current process
     pthread_mutex_lock(&current_mutex);
     current[cpu_id]->state = PROCESS_WAITING;
+    // If in the multi-level queue case, increase priority and reset waiting timer
+    if (alg==MultiQueue && current[cpu_id]->queue_priority < 3) {
+      current[cpu_id]->queue_priority++;
+      current[cpu_id]->wait_start_time=get_simulator_time();
+    }
     pthread_mutex_unlock(&current_mutex);
     schedule(cpu_id);
 }
@@ -205,7 +286,6 @@ extern void terminate(unsigned int cpu_id) {
  * should not preempt any CPUs. To preempt a process, use force_preempt().
  * Look in os-sim.h for its prototype and parameters.
  *
- * THIS FUNCTION IS PARTIALLY COMPLETED - REQUIRES MODIFICATION
  */
 extern void wake_up(pcb_t *process) {
     process->state = PROCESS_READY;
@@ -229,7 +309,6 @@ extern void wake_up(pcb_t *process) {
  * it takes a pointer to a process as an argument and has no return
  */
 static void addReadyProcess(pcb_t* proc) {
-
   // ensure no other process can access ready list while we update it
   pthread_mutex_lock(&ready_mutex);
 
@@ -241,10 +320,11 @@ static void addReadyProcess(pcb_t* proc) {
     pthread_cond_signal(&ready_empty);
   }
   else {
+    if (tail==NULL) {
+    }
     tail->next = proc;
     tail = proc;
   }
-
   // ensure that this proc points to NULL
   proc->next = NULL;
 
@@ -259,11 +339,8 @@ static void addReadyProcess(pcb_t* proc) {
  * if the ready queue is empty
  *
  * TO-DO: handle priority scheduling
- *
- * THIS FUNCTION IS PARTIALLY COMPLETED - REQUIRES MODIFICATION
  */
 static pcb_t* getReadyProcess(void) {
-
   // ensure no other process can access ready list while we update it
   pthread_mutex_lock(&ready_mutex);
 
@@ -273,7 +350,7 @@ static pcb_t* getReadyProcess(void) {
 	  return NULL;
   }
 
-  if (alg=StaticPriority) {
+  if (alg==StaticPriority) {
     // get highest priority process to return and update head to point to next process
     pcb_t* currentProcess = head;
     pcb_t* highestProcess = head;
@@ -304,7 +381,7 @@ static pcb_t* getReadyProcess(void) {
     pthread_mutex_unlock(&ready_mutex);
     return highestProcess;
   }
-  else {
+  else if (alg==RoundRobin || alg==FIFO){
     // get first process to return and update head to point to next process
     pcb_t* first = head;
     head = first->next;
@@ -314,5 +391,39 @@ static pcb_t* getReadyProcess(void) {
 
     pthread_mutex_unlock(&ready_mutex);
     return first;
+  }
+
+  //Multi-Level Queue Case
+  else {
+    // get highest priority process to return and update head to point to
+    // next process. Priority refers to the queue a process is in.
+    pcb_t* currentProcess = head;
+    pcb_t* highestProcess = head;
+    pcb_t* previousPointer = NULL;
+    pcb_t* highestPreviousPointer = NULL;
+
+    int topPriority = currentProcess->queue_priority;
+    // find top priority item closest to head in the queue
+    while (currentProcess!= NULL) {
+      if (topPriority < currentProcess->queue_priority) {
+        highestProcess = currentProcess;
+        highestPreviousPointer = previousPointer;
+        topPriority = currentProcess->queue_priority;
+      }
+      previousPointer = currentProcess;
+      currentProcess = currentProcess->next;
+    }
+
+    if (highestPreviousPointer == NULL) {
+      head = highestProcess->next;
+      // if there was no next process, list is now empty, set tail to NULL
+      if (head == NULL) tail = NULL;
+    } else {
+        highestPreviousPointer->next = highestProcess->next;
+      if (highestPreviousPointer->next==NULL) tail=highestPreviousPointer;
+    }
+
+    pthread_mutex_unlock(&ready_mutex);
+    return highestProcess;
   }
 }

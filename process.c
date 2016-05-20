@@ -1,7 +1,7 @@
 /*
- * process.c 
+ * process.c
  * Multithreaded OS Simulation - original file from project 4 at
- * http://www.cc.gatech.edu/~rama/CS2200-External 
+ * http://www.cc.gatech.edu/~rama/CS2200-External
  *
  * This file contains process data for the simulator.
  */
@@ -133,7 +133,7 @@ static op_t pid3_ops[] = {
 };
 
 static op_t pid4_ops[] = {
-    { OP_CPU, 10 }, 
+    { OP_CPU, 10 },
     { OP_IO, 1 },
     { OP_CPU, 14 },
     { OP_IO, 1 },
@@ -156,7 +156,7 @@ static op_t pid4_ops[] = {
 };
 
 static op_t pid5_ops[] = {
-    { OP_CPU, 9 }, 
+    { OP_CPU, 9 },
     { OP_IO, 1 },
     { OP_CPU, 10 },
     { OP_IO, 2 },
@@ -179,7 +179,7 @@ static op_t pid5_ops[] = {
 };
 
 static op_t pid6_ops[] = {
-    { OP_CPU, 6 }, 
+    { OP_CPU, 6 },
     { OP_IO, 3 },
     { OP_CPU, 9 },
     { OP_IO, 1 },
@@ -202,7 +202,7 @@ static op_t pid6_ops[] = {
 };
 
 static op_t pid7_ops[] = {
-    { OP_CPU, 6 }, 
+    { OP_CPU, 6 },
     { OP_IO, 3 },
     { OP_CPU, 12 },
     { OP_IO, 3 },
@@ -225,14 +225,12 @@ static op_t pid7_ops[] = {
 };
 
 pcb_t processes[PROCESS_COUNT] = {
-    { 0, "Iapache", 8, PROCESS_NEW, pid0_ops },
-    { 1, "Ibash", 7, PROCESS_NEW, pid1_ops },
-    { 2, "Imozilla", 7, PROCESS_NEW, pid2_ops },
-    { 3, "Ccpu", 5, PROCESS_NEW, pid3_ops },
-    { 4, "Cgcc", 1, PROCESS_NEW, pid4_ops },
-    { 5, "Cspice", 2, PROCESS_NEW, pid5_ops },
-    { 6, "Cmysql", 4, PROCESS_NEW, pid6_ops },
-    { 7, "Csim", 3, PROCESS_NEW, pid7_ops }
+    { 0, "Iapache", 8, PROCESS_NEW, pid0_ops, 3, 0 },
+    { 1, "Ibash", 7, PROCESS_NEW, pid1_ops, 3, 0 },
+    { 2, "Imozilla", 7, PROCESS_NEW, pid2_ops, 3, 0 },
+    { 3, "Ccpu", 5, PROCESS_NEW, pid3_ops, 3, 0 },
+    { 4, "Cgcc", 1, PROCESS_NEW, pid4_ops, 3, 0 },
+    { 5, "Cspice", 2, PROCESS_NEW, pid5_ops, 3, 0 },
+    { 6, "Cmysql", 4, PROCESS_NEW, pid6_ops, 3, 0 },
+    { 7, "Csim", 3, PROCESS_NEW, pid7_ops, 3, 0 }
 };
-
-

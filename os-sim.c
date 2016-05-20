@@ -1,5 +1,5 @@
 /*
- * os-sim.c 
+ * os-sim.c
  * Multithreaded OS Simulation - original file from project 4 at
  * http://www.cc.gatech.edu/~rama/CS2200-External
  *
@@ -562,7 +562,7 @@ static void simulate_io(void)
 
         /* Move the programs "PC" to the next "instruction" */
         completed->pcb->pc = ((op_t*)completed->pcb->pc) + 1;
-        
+
         /*
          * Remove the I/O request from the queue before calling the student's
          * code.  We must do this, because once we release the simulator_mutex,
@@ -620,4 +620,7 @@ extern void mt_safe_usleep(unsigned long usec)
     while (nanosleep(&ts, &ts) != 0);
 }
 
-
+// Getter method for simulator time, used in multi-level queue
+extern int get_simulator_time(void) {
+  return simulator_time;
+}

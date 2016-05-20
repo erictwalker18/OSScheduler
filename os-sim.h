@@ -61,6 +61,8 @@ typedef struct _pcb_t {
     const unsigned int static_priority;
     process_state_t state;
     op_t *pc;
+    unsigned int queue_priority;
+    int wait_start_time;
     struct _pcb_t *next;
 } pcb_t;
 
@@ -101,6 +103,7 @@ extern void force_preempt(unsigned int cpu_id);
  */
 extern void mt_safe_usleep(unsigned long usec);
 
+extern int get_start_time(void);
+
 
 #endif /* __OS_SIM_H__ */
-
