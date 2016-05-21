@@ -5,7 +5,7 @@
  *
  * The simulator internals.
  *
- * Last modified 2/23/2014 by Sherri Goings
+ * Last modified 5/20/2016 by Eric Walker and Isaac Garfinkle
  *
  * DO NOT MODIFY THIS FILE
  */

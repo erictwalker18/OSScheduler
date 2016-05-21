@@ -4,6 +4,9 @@
  * http://www.cc.gatech.edu/~rama/CS2200-External
  *
  * This file contains process data for the simulator.
+ * Last modified 5/20/2016 by Eric Walker and Isaac Garfinkle
+ * FOR THE GRADER: note the change in initialization of processes
+ * (including the extra parameters)
  */
 
 #include "os-sim.h"

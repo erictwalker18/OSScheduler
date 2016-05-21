@@ -2,7 +2,7 @@
  * student.c
  * This file contains the CPU scheduler for the simulation.
  * original base code from http://www.cc.gatech.edu/~rama/CS2200
- * Last modified 5/15/2016 by Eric Walker and Isaac Garfinkle
+ * Last modified 5/20/2016 by Eric Walker and Isaac Garfinkle
  */
 
 #include <assert.h>

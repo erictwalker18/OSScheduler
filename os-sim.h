@@ -5,7 +5,7 @@
  *
  * The simulator library.
  *
- * YOU WILL NOT NEED TO MODIFY THIS FILE
+ * Last modified 5/20/2016 by Eric Walker and Isaac Garfinkle
  */
 
 #ifndef __OS_SIM_H__
